@@ -1,30 +1,55 @@
 import java.sql.*;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
-    static void addSongQuery(Connection conn, String query) throws SQLException {
-        Statement statement = conn.createStatement();
-        statement.execute(query);
+    static List<String> DDL = List.of("CREATE", "DROP", "ALTER", "TRUNCATE");
+    static List<String> DML = List.of("INSERT", "UPDATE", "DELETE", "CALL", "EXPLAIN");
+    static List<String> TCL = List.of("COMMIT", "SAVEPOINT", "ROLLBACK", "SET");
+    static List<String> DCL = List.of("GRANT", "REVOKE");
+    static List<String> DQL = List.of("SELECT");
+
+
+    static CommandType detectCommandType(String query) {
+        String command = query.split(" ")[0];
+        if (DDL.contains(command)) return CommandType.DDL;
+        else if (DML.contains(command)) return CommandType.DML;
+        else if (TCL.contains(command)) return CommandType.TCL;
+        else if (DQL.contains(command)) return CommandType.DQL;
+        else if (DCL.contains(command)) return CommandType.DCL;
+        else return CommandType.NULL;
     }
 
-    static void getSongNamesQuery(Connection conn, String query) throws SQLException {
-        Statement statement = conn.createStatement();
+    static void execute(Statement statement, String query) throws SQLException {
+        boolean successfulOperation = statement.execute(query);
+        if (successfulOperation) {
+            System.out.println("operation was successful");
+        } else System.out.println("operation was failed");
+    }
+
+    static void executeUpdate(Statement statement, String query) throws SQLException {
+        int numOfAffectedRows = statement.executeUpdate(query);
+        System.out.println("number of affected rows: " + numOfAffectedRows);
+    }
+
+    static void executeQuery(Statement statement, String query) throws SQLException {
         ResultSet resultSet = statement.executeQuery(query);
-        while (resultSet.next()) {
-            System.out.println(resultSet.getString(1) + ", ");
+        printResultSet(resultSet);
+    }
+
+    static void performQuery(
+            Statement statement,
+            CommandType commandType,
+            String query) throws SQLException {
+        switch (commandType) {
+            case DDL -> executeUpdate(statement, query);
+            case DML, DQL -> executeQuery(statement, query);
+            case TCL, DCL -> execute(statement, query);
+            default -> System.out.println("please enter a valid SQL command");
         }
     }
 
-    static void customQuery(Connection conn) throws SQLException {
-        // get and store query from user input
-        System.out.println("please enter query to the DB");
-        Scanner scanner = new Scanner(System.in);
-        String query = scanner.nextLine();
-
-        // execute the query and store the result
-        Statement statement = conn.createStatement();
-        ResultSet resultSet = statement.executeQuery(query);
-
+    static void printResultSet(ResultSet resultSet) throws SQLException {
         // get resultSet metadata and get column count
         ResultSetMetaData resultSetMD = resultSet.getMetaData();
         int columnsNumber = resultSetMD.getColumnCount();
@@ -34,28 +59,38 @@ public class Main {
         System.out.println();
 
         // print columns
-        for (int i = 1; i < columnsNumber; i++)
+        for (int i = 1; i <= columnsNumber; i++)
             System.out.print(resultSetMD.getColumnName(i) + " ");
         System.out.println();
 
         // print rows
         while (resultSet.next()) {
-            for (int i = 1; i < columnsNumber; i++)
+            for (int i = 1; i <= columnsNumber; i++)
                 System.out.print(resultSet.getString(i) + " ");
             System.out.println();
         }
+    }
+
+    static void customQuery(Connection conn) throws SQLException {
+        // get and store query from user input
+        System.out.println("please enter query for the DB");
+        Scanner scanner = new Scanner(System.in);
+        String query = scanner.nextLine();
+
+        // get SQL commandType
+        CommandType currentType = detectCommandType(query);
+
+        // create a JDBC statement
+        Statement statement = conn.createStatement();
+
+        // execute the query using the statement
+        performQuery(statement, currentType, query);
     }
 
     public static void main(String[] args) {
         String dbURL = "jdbc:mysql://localhost:3306/record_company";
         String username = "root";
         String password = "@dolphin888";
-
-        // some queries stored as String
-        String getSongQuery = "SELECT name FROM songs LIMIT 9";
-        String addSongQuery = "INSERT INTO " +
-                "songs(id,name,length,album_id) " +
-                "VALUES (8,'Beyond Today (Farewell Pt. 3)',5+(06/60),1)";
 
         // connect to database and execute some queries
         try (Connection conn = DriverManager.getConnection(dbURL, username, password)) {
