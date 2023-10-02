@@ -13,10 +13,13 @@ public class Main {
     static CommandType detectCommandType(String query) {
         String command = query.split(" ")[0];
         if (DDL.contains(command)) return CommandType.DDL;
-        else if (DML.contains(command)) return CommandType.DML;
-        else if (TCL.contains(command)) return CommandType.TCL;
-        else if (DQL.contains(command)) return CommandType.DQL;
-        else if (DCL.contains(command)) return CommandType.DCL;
+        else if (DML.contains(command.toUpperCase())
+                || command.toUpperCase().contains("SHOW")
+                || command.toUpperCase().contains("USE")
+        ) return CommandType.DML;
+        else if (TCL.contains(command.toUpperCase())) return CommandType.TCL;
+        else if (DQL.contains(command.toUpperCase())) return CommandType.DQL;
+        else if (DCL.contains(command.toUpperCase())) return CommandType.DCL;
         else return CommandType.NULL;
     }
 
@@ -42,8 +45,8 @@ public class Main {
             CommandType commandType,
             String query) throws SQLException {
         switch (commandType) {
-            case DDL -> executeUpdate(statement, query);
-            case DML, DQL -> executeQuery(statement, query);
+            case DDL, DML -> executeUpdate(statement, query);
+            case DQL -> executeQuery(statement, query);
             case TCL, DCL -> execute(statement, query);
             default -> System.out.println("please enter a valid SQL command");
         }
