@@ -2,23 +2,25 @@ import java.sql.*;
 import java.util.List;
 import java.util.Scanner;
 
-public class Main {
+public class Main extends DatabaseConnection {
     static List<String> DDL = List.of("CREATE", "DROP", "ALTER", "TRUNCATE");
     static List<String> DML = List.of("INSERT", "UPDATE", "DELETE", "CALL", "EXPLAIN");
     static List<String> TCL = List.of("COMMIT", "SAVEPOINT", "ROLLBACK", "SET");
     static List<String> DCL = List.of("GRANT", "REVOKE");
     static List<String> DQL = List.of("SELECT");
 
+    static boolean ongoingQuery = false;
+
 
     static CommandType detectCommandType(String query) {
         String command = query.split(" ")[0];
         if (DDL.contains(command)) return CommandType.DDL;
         else if (DML.contains(command.toUpperCase())
-                || command.toUpperCase().contains("SHOW")
                 || command.toUpperCase().contains("USE")
         ) return CommandType.DML;
         else if (TCL.contains(command.toUpperCase())) return CommandType.TCL;
-        else if (DQL.contains(command.toUpperCase())) return CommandType.DQL;
+        else if (DQL.contains(command.toUpperCase())
+                || command.toUpperCase().contains("SHOW")) return CommandType.DQL;
         else if (DCL.contains(command.toUpperCase())) return CommandType.DCL;
         else return CommandType.NULL;
     }
@@ -55,26 +57,28 @@ public class Main {
     static void printResultSet(ResultSet resultSet) throws SQLException {
         // get resultSet metadata and get column count
         ResultSetMetaData resultSetMD = resultSet.getMetaData();
-        int columnsNumber = resultSetMD.getColumnCount();
+        int numOfColumns = resultSetMD.getColumnCount();
 
         // print the output
         System.out.println("query output: ");
         System.out.println();
 
         // print columns
-        for (int i = 1; i <= columnsNumber; i++)
+        for (int i = 1; i <= numOfColumns; i++)
             System.out.print(resultSetMD.getColumnName(i) + " ");
         System.out.println();
 
         // print rows
         while (resultSet.next()) {
-            for (int i = 1; i <= columnsNumber; i++)
+            for (int i = 1; i <= numOfColumns; i++)
                 System.out.print(resultSet.getString(i) + " ");
             System.out.println();
         }
     }
 
     static void customQuery(Connection conn) throws SQLException {
+        ongoingQuery = true;
+
         // get and store query from user input
         System.out.println("please enter query for the DB");
         Scanner scanner = new Scanner(System.in);
@@ -88,20 +92,21 @@ public class Main {
 
         // execute the query using the statement
         performQuery(statement, currentType, query);
+
+        ongoingQuery = false;
     }
 
     public static void main(String[] args) {
-        String dbURL = "jdbc:mysql://localhost:3306/record_company";
-        String username = "root";
-        String password = "@dolphin888";
 
-        // connect to database and execute some queries
-        try (Connection conn = DriverManager.getConnection(dbURL, username, password)) {
+        // get connection from extended abstract class
+        try (Connection conn = getConnection()) {
             if (conn != null) System.out.println("Connected");
             assert conn != null;
 
-            // use custom query from user input
-            customQuery(conn);
+            while (!ongoingQuery) {
+                // use custom query from user input
+                customQuery(conn);
+            }
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
