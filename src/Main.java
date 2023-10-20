@@ -4,23 +4,20 @@ import java.util.Scanner;
 
 public class Main extends DatabaseConnection {
     static List<String> DDL = List.of("CREATE", "DROP", "ALTER", "TRUNCATE");
-    static List<String> DML = List.of("INSERT", "UPDATE", "DELETE", "CALL", "EXPLAIN");
+    static List<String> DML = List.of("INSERT", "UPDATE", "DELETE", "CALL", "EXPLAIN", "LOCK", "USE");
     static List<String> TCL = List.of("COMMIT", "SAVEPOINT", "ROLLBACK", "SET");
     static List<String> DCL = List.of("GRANT", "REVOKE");
-    static List<String> DQL = List.of("SELECT");
+    static List<String> DQL = List.of("SELECT", "SHOW");
 
     static boolean ongoingQuery = false;
 
 
     static CommandType detectCommandType(String query) {
         String command = query.split(" ")[0];
-        if (DDL.contains(command)) return CommandType.DDL;
-        else if (DML.contains(command.toUpperCase())
-                || command.toUpperCase().contains("USE")
-        ) return CommandType.DML;
+        if (DDL.contains(command.toUpperCase())) return CommandType.DDL;
+        else if (DML.contains(command.toUpperCase())) return CommandType.DML;
         else if (TCL.contains(command.toUpperCase())) return CommandType.TCL;
-        else if (DQL.contains(command.toUpperCase())
-                || command.toUpperCase().contains("SHOW")) return CommandType.DQL;
+        else if (DQL.contains(command.toUpperCase())) return CommandType.DQL;
         else if (DCL.contains(command.toUpperCase())) return CommandType.DCL;
         else return CommandType.NULL;
     }
