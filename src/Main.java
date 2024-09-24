@@ -1,32 +1,28 @@
+import connection.DatabaseConnection;
+import enums.CommandType;
+
 import java.sql.*;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Scanner;
 
+import static enums.CommandType.values;
+
 public class Main extends DatabaseConnection {
-    static List<String> DDL = List.of("CREATE", "DROP", "ALTER", "TRUNCATE");
-    static List<String> DML = List.of("INSERT", "UPDATE", "DELETE", "CALL", "EXPLAIN", "LOCK", "USE");
-    static List<String> TCL = List.of("COMMIT", "SAVEPOINT", "ROLLBACK", "SET");
-    static List<String> DCL = List.of("GRANT", "REVOKE");
-    static List<String> DQL = List.of("SELECT", "SHOW");
 
     static boolean ongoingQuery = false;
 
 
     static CommandType detectCommandType(String query) {
-        String command = query.split(" ")[0];
-        if (DDL.contains(command.toUpperCase())) return CommandType.DDL;
-        else if (DML.contains(command.toUpperCase())) return CommandType.DML;
-        else if (TCL.contains(command.toUpperCase())) return CommandType.TCL;
-        else if (DQL.contains(command.toUpperCase())) return CommandType.DQL;
-        else if (DCL.contains(command.toUpperCase())) return CommandType.DCL;
-        else return CommandType.NULL;
+        String command = query.split(" ")[0].toUpperCase();
+        return Arrays.stream(values()).map(commandType -> commandType.detectType(command))
+                .findFirst().orElseThrow();
     }
 
     static void execute(Statement statement, String query) throws SQLException {
         boolean successfulOperation = statement.execute(query);
         if (successfulOperation) {
             System.out.println("operation was successful");
-        } else System.out.println("operation was failed");
+        } else System.err.println("operation was failed");
     }
 
     static void executeUpdate(Statement statement, String query) throws SQLException {
@@ -47,7 +43,7 @@ public class Main extends DatabaseConnection {
             case DDL, DML -> executeUpdate(statement, query);
             case DQL -> executeQuery(statement, query);
             case TCL, DCL -> execute(statement, query);
-            default -> System.out.println("please enter a valid SQL command");
+            default -> System.err.println("please enter a valid SQL command");
         }
     }
 
@@ -97,7 +93,7 @@ public class Main extends DatabaseConnection {
 
         // get connection from extended abstract class
         try (Connection conn = getConnection()) {
-            if (conn != null) System.out.println("Connected");
+            if (conn != null) System.out.println("connection has established");
             assert conn != null;
 
             while (!ongoingQuery) {
