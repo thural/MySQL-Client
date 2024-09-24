@@ -9,8 +9,8 @@ public enum CommandType {
     DDL(Set.of(CREATE, DROP, ALTER, TRUNCATE)),
     DML(Set.of(INSERT, UPDATE, DELETE, CALL, EXPLAIN, LOCK, USE)),
     TCL(Set.of(COMMIT, SAVEPOINT, ROLLBACK, SET)),
-    DQL(Set.of(GRANT, REVOKE)),
-    DCL(Set.of(SELECT, SHOW));
+    DQL(Set.of(SELECT, SHOW)),
+    DCL(Set.of(GRANT, REVOKE));
 
     private final Set<Command> commands;
 
